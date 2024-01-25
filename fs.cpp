@@ -3,7 +3,8 @@
 #include "fs.h"
 
 int main() {
-    Manager manager("disk");
+    Manager manager;
+    Memory mem("disk");
 
     // Create the root directory
     Directory root(FDnode("root", 1, 0, 0), 2, std::vector<FDnode>{});
@@ -18,8 +19,9 @@ int main() {
     root.fdnodes.push_back(tetNode);
 
     // Initialize the manager and write the root directory to disk
-    manager.directory_to_buffer(root);
-    manager.buffer_write_disk(0);
+    manager.init(mem);
+    manager.directory_to_buffer(root,mem);
+    mem.buffer_write_disk(0);
 
     // Close the disk file
 

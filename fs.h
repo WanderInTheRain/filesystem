@@ -49,30 +49,22 @@ public:
         : dnode(_dnode), nodenum(_nodenum), fdnodes(_fdnodes) {}
 };
 
-class Manager {
+class Memory{
 public:
-    Directory current_dir;
-    std::fstream disk;
     char buffer[blocksize];
+    std::fstream disk;
 
-    Manager(const char* disk_filename) :
-     current_dir(FDnode("", 1, 0, 0), 0, std::vector<FDnode>()) {
+    Memory(const char* disk_filename){
         disk.open(disk_filename, std::ios::binary | std::ios::in | std::ios::out);
         if (!disk.is_open()) {
             std::cerr << "无法打开磁盘文件" << std::endl;
             exit(EXIT_FAILURE);
         }
-
-        init();
-    }
-
-    ~Manager() {
-        disk.close();
-    }
-
-    void init() { // read root directory from disk 0 block
         buffer_read_block(0);
-        buffer_to_directory(current_dir);
+    }
+
+    ~Memory(){
+        disk.close();
     }
 
     void buffer_read_block(std::size_t start_block) {
@@ -84,9 +76,21 @@ public:
         disk.seekp(start_block * blocksize, std::ios::beg);
         disk.write(buffer, blocksize);
     }
+};
 
-    void buffer_to_directory(Directory& directory) {
-        char* buffer_ptr = buffer;
+class Manager {
+public:
+    Directory current_dir;
+
+    Manager() :
+     current_dir(FDnode("", 1, 0, 0), 0, std::vector<FDnode>()){}
+
+    void init(Memory& mem){
+        buffer_to_directory(current_dir,mem);
+    }
+
+    void buffer_to_directory(Directory& directory,Memory& mem) {
+        char* buffer_ptr = mem.buffer;
         memcpy(&directory.dnode, buffer_ptr, sizeof(FDnode));
         buffer_ptr += sizeof(FDnode);
 
@@ -101,8 +105,8 @@ public:
         }
     }
 
-    void directory_to_buffer(const Directory& directory) {
-        char* buffer_ptr = buffer;
+    void directory_to_buffer(const Directory& directory,Memory& mem) {
+        char* buffer_ptr = mem.buffer;
         memcpy(buffer_ptr, &directory.dnode, sizeof(FDnode));
         buffer_ptr += sizeof(FDnode);
 
