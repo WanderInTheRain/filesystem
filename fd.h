@@ -6,7 +6,10 @@
 #include <vector>
 #include "memory.h"
 
+const int FL = 0;
+const int DIR = 1;
 const std::size_t namelen = 16;
+const int blocknum = 1024;
 
 class FDnode { // file or directory node
 public:

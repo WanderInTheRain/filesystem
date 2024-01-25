@@ -7,7 +7,6 @@ Memory::Memory(const char* disk_filename){
         std::cerr << "无法打开磁盘文件" << std::endl;
         exit(EXIT_FAILURE);
     }
-    buffer_read_block(0);
 }
 
 Memory::~Memory(){

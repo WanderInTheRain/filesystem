@@ -28,3 +28,16 @@ void clean_disk(const char* _filename) {
     }
 
 }
+
+void init_disk(){
+    Manager manager("disk");
+
+    manager.bitmap[0] = 1;
+    manager.bitmap[1] = 1;
+
+    manager.update_bitmap();
+    Directory root(FDnode("root", 1, 1, 1), 0, std::vector<FDnode>{});
+
+    manager.directory_to_buffer(root);
+    manager.mem.buffer_write_disk(1);
+}

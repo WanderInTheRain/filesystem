@@ -2,18 +2,21 @@
 
 #include "shell.h"
 
+void clean_disk(const char* _filename);
+
 int main() {
-    Manager manager;
-    Memory mem("disk");
-    manager.init(mem);
+    Shell shell("disk");
+
+    shell.run();
+    /*Manager manager("disk");
 
     // Create the root directory
-    Directory root(FDnode("root", 1, 0, 0), 2, std::vector<FDnode>{});
+    Directory root(FDnode("root", 1, 1, 0), 2, std::vector<FDnode>{});
 
     // Create an FDnode named "home" inside the root directory
-    FDnode homeNode("home", 0, 1 , root.dnode.start_block);
+    FDnode homeNode("home", 1, 2 , root.dnode.start_block);
 
-    FDnode tetNode("tet", 0, 2 , root.dnode.start_block);
+    FDnode tetNode("tet", 1, 3 , root.dnode.start_block);
 
     // Add the homeNode to the fdnodes vector in the root directory
     root.fdnodes.push_back(homeNode);
@@ -21,10 +24,12 @@ int main() {
 
     // Initialize the manager and write the root directory to disk
 
-    manager.directory_to_buffer(root,mem);
-    mem.buffer_write_disk(0);
+    manager.directory_to_buffer(root);
+    manager.mem.buffer_write_disk(1);
 
-    // Close the disk file
+    manager.bitmap[2] = 1;
+    manager.bitmap[3] = 1;
 
+    manager.update_bitmap();*/
     return 0;
 }

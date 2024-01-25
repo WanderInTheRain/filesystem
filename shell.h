@@ -7,22 +7,28 @@
 class Manager {
 public:
     Directory current_dir;
+    Memory mem;
+    int bitmap[blocknum];
 
-    Manager();
-    void init(Memory& mem);
-    void buffer_to_directory(Directory& directory,Memory& mem);
-    void directory_to_buffer(const Directory& directory,Memory& mem);
+    Manager(const char* disk_filename);
+    void init();
+    void buffer_to_directory(Directory& directory);
+    void directory_to_buffer(const Directory& directory);
+    void init_bitmap();
+    void update_bitmap();
+    int get_block();
+    void release_block(int blknum);
 };
 
 class Shell{
 public:
     Manager manager;
-    Memory mem;
+    std::string prefix;
     std::string cmd;
 
     Shell(const char* disk_filename);
-    ~Shell();
     void run();
+    std::vector<std::string> split(std::string input);
 };
 
 #endif

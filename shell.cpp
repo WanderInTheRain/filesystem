@@ -1,17 +1,50 @@
 // shell.cpp
 
 #include "shell.h"
+#include <sstream>
 
 //Manager
-Manager::Manager():\
-    current_dir(FDnode("", 1, 0, 0), 0, std::vector<FDnode>()){}
-
-
-void Manager::init(Memory& mem){
-    buffer_to_directory(current_dir,mem);
+Manager::Manager(const char* disk_filename):current_dir(FDnode("", 1, 0, 0), 0, std::vector<FDnode>()),\
+ mem(disk_filename){
+    init();
 }
 
-void Manager::buffer_to_directory(Directory& directory,Memory& mem) {
+void Manager::init(){
+    init_bitmap();
+    mem.buffer_read_block(1);
+    buffer_to_directory(current_dir);
+}
+
+int Manager::get_block(){
+    int blknum=0;
+    while (bitmap[blknum] != 0){
+        blknum++;
+    }
+    bitmap[blknum] == 1;
+    update_bitmap();
+    return blknum;
+}
+
+void Manager::release_block(int blknum){
+    bitmap[blknum] == 0;
+    update_bitmap();
+}
+
+void Manager::init_bitmap(){
+    mem.buffer_read_block(0);
+    char* buffer_ptr = mem.buffer;
+    memcpy(bitmap, buffer_ptr, sizeof(int [blocknum]));
+    buffer_ptr += sizeof(int [blocknum]);
+}
+
+void Manager::update_bitmap(){
+    char* buffer_ptr = mem.buffer;
+    memcpy(buffer_ptr, bitmap, sizeof(int [blocknum]));
+    buffer_ptr += sizeof(int [blocknum]);
+    mem.buffer_write_disk(0);
+}
+
+void Manager::buffer_to_directory(Directory& directory) {
     char* buffer_ptr = mem.buffer;
     memcpy(&directory.dnode, buffer_ptr, sizeof(FDnode));
     buffer_ptr += sizeof(FDnode);
@@ -27,7 +60,7 @@ void Manager::buffer_to_directory(Directory& directory,Memory& mem) {
     }
 }
 
-void Manager::directory_to_buffer(const Directory& directory,Memory& mem) {
+void Manager::directory_to_buffer(const Directory& directory) {
     char* buffer_ptr = mem.buffer;
     memcpy(buffer_ptr, &directory.dnode, sizeof(FDnode));
     buffer_ptr += sizeof(FDnode);
@@ -38,5 +71,53 @@ void Manager::directory_to_buffer(const Directory& directory,Memory& mem) {
     for (auto node : directory.fdnodes) {
         memcpy(buffer_ptr, &node, sizeof(FDnode));
         buffer_ptr += sizeof(FDnode);
+    }
+}
+
+//shell
+Shell::Shell(const char* disk_filename):manager(disk_filename),\
+ prefix("/"){
+    prefix += manager.current_dir.dnode.name;
+}
+
+std::vector<std::string> Shell::split(std::string input){
+    std::istringstream iss(input);
+    std::vector<std::string> tokens;
+
+    std::string token;
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
+
+void Shell::run(){
+    bool run {true};
+    std::vector<std::string> tokens;
+
+    while (run){
+        std::cout<<prefix<<":";
+        std::getline(std::cin, cmd);
+
+        tokens = split(cmd);
+
+        if (tokens[0] == "quit"){
+            run = false;
+        }
+        else if (tokens[0] == "ls"){
+            for (auto fdnode : manager.current_dir.fdnodes){
+                if (fdnode.type == FL){
+                    std::cout<<"file:"<<fdnode.name<<"  ";
+                }
+                else if (fdnode.type == DIR){
+                    std::cout<<"dir:"<<fdnode.name<<"  ";
+                }
+            }
+            std::cout<<std::endl;
+        }
+        else if (tokens[0] == "mkdir"){
+            Directory root(FDnode("root", 1, 1, 0), 2, std::vector<FDnode>{});
+        }
     }
 }
