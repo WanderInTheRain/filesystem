@@ -87,17 +87,8 @@ public:
 
     void buffer_to_directory(Directory& directory) {
         char* buffer_ptr = buffer;
-        memcpy(directory.dnode.name, buffer_ptr, namelen);
-        buffer_ptr += namelen;
-
-        memcpy(&directory.dnode.type, buffer_ptr, sizeof(int));
-        buffer_ptr += sizeof(int);
-
-        memcpy(&directory.dnode.start_block, buffer_ptr, sizeof(std::size_t));
-        buffer_ptr += sizeof(std::size_t);
-
-        memcpy(&directory.dnode.parent_block, buffer_ptr, sizeof(std::size_t));
-        buffer_ptr += sizeof(std::size_t);
+        memcpy(&directory.dnode, buffer_ptr, sizeof(FDnode));
+        buffer_ptr += sizeof(FDnode);
 
         memcpy(&directory.nodenum, buffer_ptr, sizeof(std::size_t));
         buffer_ptr += sizeof(std::size_t);
@@ -112,17 +103,8 @@ public:
 
     void directory_to_buffer(const Directory& directory) {
         char* buffer_ptr = buffer;
-        memcpy(buffer_ptr, directory.dnode.name, namelen);
-        buffer_ptr += namelen;
-
-        memcpy(buffer_ptr, &directory.dnode.type, sizeof(int));
-        buffer_ptr += sizeof(int);
-
-        memcpy(buffer_ptr, &directory.dnode.start_block, sizeof(std::size_t));
-        buffer_ptr += sizeof(std::size_t);
-
-        memcpy(buffer_ptr, &directory.dnode.parent_block, sizeof(std::size_t));
-        buffer_ptr += sizeof(std::size_t);
+        memcpy(buffer_ptr, &directory.dnode, sizeof(FDnode));
+        buffer_ptr += sizeof(FDnode);
 
         memcpy(buffer_ptr, &directory.nodenum, sizeof(std::size_t));
         buffer_ptr += sizeof(std::size_t);
