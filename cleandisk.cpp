@@ -1,9 +1,8 @@
-#include <iostream>
-#include <fstream>
+#include "shell.h"
 
-int main1() {
+void clean_disk(const char* _filename) {
     // 指定文件名
-    const char* filename = "disk";
+    const char* filename = _filename;
     // 指定文件大小为5MB
     std::size_t file_size = 5 * 1024 * 1024;//512*10*1024
 
@@ -23,10 +22,9 @@ int main1() {
         // 释放缓冲区内存
         delete buffer;
 
-        std::cout << "成功创建文件：" << filename << std::endl;
+        std::cout << "clean file:" << filename << std::endl;
     } else {
-        std::cerr << "无法打开文件：" << filename << std::endl;
+        std::cerr << "cannot open file:" << filename << std::endl;
     }
 
-    return 0;
 }

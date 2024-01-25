@@ -1,30 +1,42 @@
 // shell.cpp
 
-#include "fs.h"
+#include "shell.h"
 
-int main() {
-    Manager manager;
-    Memory mem("disk");
-    manager.init(mem);
+//Manager
+Manager::Manager():\
+    current_dir(FDnode("", 1, 0, 0), 0, std::vector<FDnode>()){}
 
-    // Create the root directory
-    Directory root(FDnode("root", 1, 0, 0), 2, std::vector<FDnode>{});
 
-    // Create an FDnode named "home" inside the root directory
-    FDnode homeNode("home", 0, 1 , root.dnode.start_block);
+void Manager::init(Memory& mem){
+    buffer_to_directory(current_dir,mem);
+}
 
-    FDnode tetNode("tet", 0, 2 , root.dnode.start_block);
+void Manager::buffer_to_directory(Directory& directory,Memory& mem) {
+    char* buffer_ptr = mem.buffer;
+    memcpy(&directory.dnode, buffer_ptr, sizeof(FDnode));
+    buffer_ptr += sizeof(FDnode);
 
-    // Add the homeNode to the fdnodes vector in the root directory
-    root.fdnodes.push_back(homeNode);
-    root.fdnodes.push_back(tetNode);
+    memcpy(&directory.nodenum, buffer_ptr, sizeof(std::size_t));
+    buffer_ptr += sizeof(std::size_t);
 
-    // Initialize the manager and write the root directory to disk
+    for (std::size_t i = 0; i < directory.nodenum; ++i) {
+        FDnode node("", 1, 0, 0);
+        memcpy(&node, buffer_ptr, sizeof(FDnode));
+        directory.fdnodes.push_back(node);
+        buffer_ptr += sizeof(FDnode);
+    }
+}
 
-    manager.directory_to_buffer(root,mem);
-    mem.buffer_write_disk(0);
+void Manager::directory_to_buffer(const Directory& directory,Memory& mem) {
+    char* buffer_ptr = mem.buffer;
+    memcpy(buffer_ptr, &directory.dnode, sizeof(FDnode));
+    buffer_ptr += sizeof(FDnode);
 
-    // Close the disk file
+    memcpy(buffer_ptr, &directory.nodenum, sizeof(std::size_t));
+    buffer_ptr += sizeof(std::size_t);
 
-    return 0;
+    for (auto node : directory.fdnodes) {
+        memcpy(buffer_ptr, &node, sizeof(FDnode));
+        buffer_ptr += sizeof(FDnode);
+    }
 }

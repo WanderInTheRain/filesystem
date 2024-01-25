@@ -1,14 +1,12 @@
-// fs.h
+// fd.h
 
-#ifndef FS_H
-#define FS_H
+#ifndef FD_H
+#define FD_H
 
-#include <iostream>
-#include <fstream>
 #include <vector>
+#include "memory.h"
 
 const std::size_t namelen = 16;
-const std::size_t blocksize = 5120;
 
 class FDnode { // file or directory node
 public:
@@ -41,25 +39,4 @@ public:
      const std::vector<FDnode>& _fdnodes);
 };
 
-class Memory{
-public:
-    char buffer[blocksize];
-    std::fstream disk;
-
-    Memory(const char* disk_filename);
-    ~Memory();
-    void buffer_read_block(std::size_t start_block);
-    void buffer_write_disk(std::size_t start_block);
-};
-
-class Manager {
-public:
-    Directory current_dir;
-
-    Manager();
-    void init(Memory& mem);
-    void buffer_to_directory(Directory& directory,Memory& mem);
-    void directory_to_buffer(const Directory& directory,Memory& mem);
-};
-
-#endif // FS_H
+#endif
