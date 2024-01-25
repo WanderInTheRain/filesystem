@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-int main() {
+int main1() {
     // 指定文件名
     const char* filename = "disk";
     // 指定文件大小为5MB
