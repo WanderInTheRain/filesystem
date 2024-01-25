@@ -3,33 +3,25 @@
 #include "fs.h"
 
 int main() {
-    Manager manager;
+    Manager manager("disk");
 
     // Create the root directory
-    Directory root;
-    memcpy(root.name, "root", namelen);  // Copy the name "root" to the root directory
-    root.type = 1;  // Directory type
-    root.size = sizeof(Directory);  // Size of the directory structure
-    root.start_block = 0;  // Starting block for the root directory
+    Directory root(FDnode("root", 1, 0, 0), 2, std::vector<FDnode>{});
 
-    // Create an Fnode named "home" inside the root directory
-    Fnode homeNode;
-    memcpy(homeNode.name, "home", namelen);  // Copy the name "home" to the Fnode
-    homeNode.type = 0;  // File type
-    homeNode.size = sizeof(Fnode);  // Size of the Fnode structure
-    homeNode.start_block = 1;  // Starting block for the Fnode
-    // You can set the data of the Fnode if needed
+    // Create an FDnode named "home" inside the root directory
+    FDnode homeNode("home", 0, 1 , root.dnode.start_block);
 
-    // Add the homeNode to the fnodes vector in the root directory
-    root.fnodes.push_back(homeNode);
+    FDnode tetNode("tet", 0, 2 , root.dnode.start_block);
+
+    // Add the homeNode to the fdnodes vector in the root directory
+    root.fdnodes.push_back(homeNode);
+    root.fdnodes.push_back(tetNode);
 
     // Initialize the manager and write the root directory to disk
-    manager.init();
     manager.directory_to_buffer(root);
     manager.buffer_write_disk(0);
 
     // Close the disk file
-    fclose(manager.disk);
 
     return 0;
 }

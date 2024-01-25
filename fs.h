@@ -1,119 +1,135 @@
-//fs.h
+// fs.h
 
 #ifndef FS_H
 #define FS_H
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 const std::size_t namelen = 16;
-const std::size_t buffersize = 512 * 10; // 10 blocks
+const std::size_t blocksize = 5120;
 
-class File { // file node
+class FDnode { // file or directory node
 public:
     char name[namelen];
-    int type; // 0 for file
-    std::size_t size;
+    int type; // 0 for file, 1 for directory
     std::size_t start_block;
-    // Change data type to char array for storing multiple characters
-    char data[buffersize];
+    std::size_t parent_block;
 
-    File() : type(0), size(0), start_block(0) {
-        // Initialize data array with null characters
-        std::fill(std::begin(data), std::end(data), '\0');
+    // Constructor
+    FDnode(const char* _name, int _type, std::size_t _start_block, std::size_t _parent_block) {
+        memcpy(name, _name, namelen);
+        type = _type;
+        start_block = _start_block;
+        parent_block = _parent_block;
     }
 };
 
-class Fnode { // file node
+class File {
 public:
-    char name[namelen];
-    int type; // 0 for file
-    std::size_t size;
-    std::size_t start_block;
-    // Change data type to char array for storing multiple characters
+    FDnode fnode; // type = 0
+    char data[blocksize - sizeof(FDnode)]; // read from start_block
+    
+    File(const FDnode& _fnode, const char* _data) : fnode(_fnode) {
+        memcpy(data, _data, blocksize - sizeof(FDnode));
+    }
 
-    Fnode() : type(0), size(0), start_block(0) {}
 };
 
 class Directory {
 public:
-    char name[namelen];
-    int type; // 1 for directory
-    std::size_t size;
-    std::size_t start_block;
-    std::vector<Fnode> fnodes;
+    FDnode dnode; // type = 1
+    std::size_t nodenum;
+    std::vector<FDnode> fdnodes;
 
-    Directory() : type(1), size(0), start_block(0) {}
+    // Constructor
+    Directory(const FDnode& _dnode, std::size_t _nodenum,\
+         const std::vector<FDnode>& _fdnodes)
+        : dnode(_dnode), nodenum(_nodenum), fdnodes(_fdnodes) {}
 };
 
 class Manager {
 public:
-    Directory root;
-    FILE* disk;
-    char buffer[buffersize];
+    Directory current_dir;
+    std::fstream disk;
+    char buffer[blocksize];
 
-    void init() { // read root directory from disk 0 block
-        disk = fopen("disk", "rb");
-        if (disk == nullptr) {
+    Manager(const char* disk_filename) :
+     current_dir(FDnode("", 1, 0, 0), 0, std::vector<FDnode>()) {
+        disk.open(disk_filename, std::ios::binary | std::ios::in | std::ios::out);
+        if (!disk.is_open()) {
             std::cerr << "无法打开磁盘文件" << std::endl;
             exit(EXIT_FAILURE);
         }
 
+        init();
+    }
+
+    ~Manager() {
+        disk.close();
+    }
+
+    void init() { // read root directory from disk 0 block
         buffer_read_block(0);
-        buffer_to_directory(root);
+        buffer_to_directory(current_dir);
     }
 
-    void buffer_read_block(std::size_t block_num) {
-        fseek(disk, block_num * buffersize, SEEK_SET);
-        fread(buffer, sizeof(char), buffersize, disk);
+    void buffer_read_block(std::size_t start_block) {
+        disk.seekg(start_block * blocksize, std::ios::beg);
+        disk.read(buffer, blocksize);
     }
 
-    void buffer_write_disk(std::size_t block_num) {
-        fseek(disk, block_num * buffersize, SEEK_SET);
-        fwrite(buffer, sizeof(char), buffersize, disk);
+    void buffer_write_disk(std::size_t start_block) {
+        disk.seekp(start_block * blocksize, std::ios::beg);
+        disk.write(buffer, blocksize);
     }
 
     void buffer_to_directory(Directory& directory) {
-        char* buffer_ptr = buffer;  // Create a pointer to traverse the buffer
-        memcpy(directory.name, buffer_ptr, namelen);
+        char* buffer_ptr = buffer;
+        memcpy(directory.dnode.name, buffer_ptr, namelen);
         buffer_ptr += namelen;
 
-        memcpy(&directory.type, buffer_ptr, sizeof(int));
+        memcpy(&directory.dnode.type, buffer_ptr, sizeof(int));
         buffer_ptr += sizeof(int);
 
-        memcpy(&directory.size, buffer_ptr, sizeof(std::size_t));
+        memcpy(&directory.dnode.start_block, buffer_ptr, sizeof(std::size_t));
         buffer_ptr += sizeof(std::size_t);
 
-        while (buffer_ptr + sizeof(Fnode) <= buffer + buffersize) {
-            Fnode node;
-            memcpy(&node, buffer_ptr, sizeof(Fnode));
-            directory.fnodes.push_back(node);
-            buffer_ptr += sizeof(Fnode);
+        memcpy(&directory.dnode.parent_block, buffer_ptr, sizeof(std::size_t));
+        buffer_ptr += sizeof(std::size_t);
+
+        memcpy(&directory.nodenum, buffer_ptr, sizeof(std::size_t));
+        buffer_ptr += sizeof(std::size_t);
+
+        for (std::size_t i = 0; i < directory.nodenum; ++i) {
+            FDnode node("", 1, 0, 0);
+            memcpy(&node, buffer_ptr, sizeof(FDnode));
+            directory.fdnodes.push_back(node);
+            buffer_ptr += sizeof(FDnode);
         }
     }
+
     void directory_to_buffer(const Directory& directory) {
-        char* buffer_ptr = buffer;  // Create a pointer to traverse the buffer
-        memcpy(buffer_ptr, directory.name, namelen);
+        char* buffer_ptr = buffer;
+        memcpy(buffer_ptr, directory.dnode.name, namelen);
         buffer_ptr += namelen;
 
-        memcpy(buffer_ptr, &directory.type, sizeof(int));
+        memcpy(buffer_ptr, &directory.dnode.type, sizeof(int));
         buffer_ptr += sizeof(int);
 
-        memcpy(buffer_ptr, &directory.size, sizeof(std::size_t));
+        memcpy(buffer_ptr, &directory.dnode.start_block, sizeof(std::size_t));
         buffer_ptr += sizeof(std::size_t);
 
-        for (const Fnode& node : directory.fnodes) {
-            memcpy(buffer_ptr, node.name, namelen);
-            buffer_ptr += namelen;
+        memcpy(buffer_ptr, &directory.dnode.parent_block, sizeof(std::size_t));
+        buffer_ptr += sizeof(std::size_t);
 
-            memcpy(buffer_ptr, &node.type, sizeof(int));
-            buffer_ptr += sizeof(int);
+        memcpy(buffer_ptr, &directory.nodenum, sizeof(std::size_t));
+        buffer_ptr += sizeof(std::size_t);
 
-            memcpy(buffer_ptr, &node.size, sizeof(std::size_t));
-            buffer_ptr += sizeof(std::size_t);
-
-            memcpy(buffer_ptr, &node.start_block, sizeof(std::size_t));
-            buffer_ptr += sizeof(std::size_t);
+        for (auto node : directory.fdnodes) {
+            memcpy(buffer_ptr, &node, sizeof(FDnode));
+            buffer_ptr += sizeof(FDnode);
         }
     }
 };
