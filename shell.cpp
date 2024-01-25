@@ -2,6 +2,7 @@
 
 #include "shell.h"
 #include <sstream>
+#include <cstring>
 
 //Manager
 Manager::Manager(const char* disk_filename):current_dir(FDnode("", 1, 0, 0), 0, std::vector<FDnode>()),\
@@ -17,10 +18,10 @@ void Manager::init(){
 
 int Manager::get_block(){
     int blknum=0;
-    while (bitmap[blknum] != 0){
+    while (bitmap[blknum] == 1){
         blknum++;
-    }
-    bitmap[blknum] == 1;
+    };
+    bitmap[blknum] = 1;
     update_bitmap();
     return blknum;
 }
@@ -97,7 +98,7 @@ void Shell::run(){
     std::vector<std::string> tokens;
 
     while (run){
-        std::cout<<prefix<<":";
+        std::cout<<prefix<<">";
         std::getline(std::cin, cmd);
 
         tokens = split(cmd);
@@ -117,7 +118,21 @@ void Shell::run(){
             std::cout<<std::endl;
         }
         else if (tokens[0] == "mkdir"){
-            Directory root(FDnode("root", 1, 1, 0), 2, std::vector<FDnode>{});
+            char name[namelen];
+            strcpy(name, tokens[1].c_str());
+            int start_block = manager.get_block();
+            int parent_block = manager.current_dir.dnode.start_block;
+            FDnode dirnode(name, FL, start_block, parent_block);
+
+            manager.current_dir.fdnodes.push_back(dirnode);
+            manager.current_dir.nodenum += 1;
+            manager.directory_to_buffer(manager.current_dir);
+            manager.mem.buffer_write_disk(manager.current_dir.dnode.start_block);
+
+            Directory dir(dirnode,\
+             0, std::vector<FDnode>{});
+            manager.directory_to_buffer(dir);
+            manager.mem.buffer_write_disk(dir.dnode.start_block);
         }
     }
 }
