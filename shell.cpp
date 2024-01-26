@@ -169,6 +169,8 @@ void Shell::run(){
                         manager.current_dir.fdnodes.erase(\
                             manager.current_dir.fdnodes.begin() + i);
                         manager.current_dir.nodenum -= 1;
+                        manager.directory_to_buffer(manager.current_dir);
+                        manager.mem.buffer_write_disk(manager.current_dir.dnode.start_block);
                     }
                     else if (manager.current_dir.fdnodes[i].type == DIR){
                         Directory child_dir(FDnode("",1,1,1), 0, std::vector<FDnode>{});
@@ -178,6 +180,8 @@ void Shell::run(){
                         manager.current_dir.fdnodes.erase(\
                             manager.current_dir.fdnodes.begin() + i);
                         manager.current_dir.nodenum -= 1;
+                        manager.directory_to_buffer(manager.current_dir);
+                        manager.mem.buffer_write_disk(manager.current_dir.dnode.start_block);
                     }
                 }
             }
@@ -186,18 +190,17 @@ void Shell::run(){
 }
 
 void Shell::rm_directory(Directory dir){
-    for (std::size_t i = 0; i < dir.nodenum; ++i){
-        if (dir.fdnodes[i].type == FL){
-            manager.release_block(dir.fdnodes[i].start_block);
-            dir.fdnodes.erase(\
-                dir.fdnodes.begin() + i);
-            i--;
+    while (!dir.fdnodes.empty()){
+        if (dir.fdnodes[0].type == FL){
+            manager.release_block(dir.fdnodes[0].start_block);
+            dir.fdnodes.pop_back();
         }
-        else if (dir.fdnodes[i].type == DIR){
+        else if (dir.fdnodes[0].type == DIR){
             Directory child_dir(FDnode("",1,1,1), 0, std::vector<FDnode>{});
-            manager.mem.buffer_read_block(dir.fdnodes[i].start_block);
+            manager.mem.buffer_read_block(dir.fdnodes[0].start_block);
             manager.buffer_to_directory(child_dir);
             rm_directory(child_dir);
+            dir.fdnodes.pop_back();
         }
     }
     dir.nodenum = 0;
