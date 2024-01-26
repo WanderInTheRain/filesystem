@@ -1,16 +1,16 @@
 # Simple File System
 
-This project implements a simple shell file system in C++. The shell allows users to navigate a virtual file system, create directories, create files, edit files, remove files and directories, list files and directories, and quit the shell.
+This project implements a simple shell file system in C++, enabling users to interact with a virtual file system through a command-line interface. The shell facilitates directory navigation, file creation, editing, removal, listing, and quitting functionalities.
 
 ## Overview
 
-The shell consists of the following main components:
+The shell comprises the following main components:
 
 1. **Shell Class (`shell.h`, `shell.cpp`):** Defines the shell interface and provides methods to interact with the virtual file system.
 
-2. **Manager Class (`man.h`):** Manages the file system operations such as initializing the file system, maintaining the directory structure, handling file operations, and managing memory allocation.
+2. **Manager Class (`man.h`):** Manages the file system operations, including initializing the file system, maintaining the directory structure, handling file operations, and managing memory allocation.
 
-3. **Memory Class (`memory.h`):** Manages the memory operations such as reading from and writing to disk blocks, and maintaining the file system's memory state.
+3. **Memory Class (`memory.h`):** Manages memory operations such as reading from and writing to disk blocks, and maintaining the file system's memory state.
 
 4. **File and Directory Classes (`fd.h`):** Define the structures for files and directories in the file system.
 
@@ -24,8 +24,10 @@ The shell consists of the following main components:
 
 ## Usage
 
-- `cd fs`
-- `./run`
+To use the file system, follow these steps:
+
+1. Navigate to the project directory: `cd fs`
+2. Run the executable: `./filesystem`
 
 ### Commands
 
@@ -39,10 +41,14 @@ The shell consists of the following main components:
 
 ## Installation
 
+To install and run the file system:
+
 1. Clone the repository to your local machine.
 2. Compile the source files using a C++ compiler.
-3. Run the executable file to start the shell.
+3. Execute the compiled executable to start the shell.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). Feel free to use, modify, and distribute the code for personal and commercial purposes.
+This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute the code for personal and commercial purposes.
+
+Feel free to enhance and customize the file system according to your requirements!
