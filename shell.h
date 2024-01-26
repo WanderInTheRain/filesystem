@@ -1,24 +1,8 @@
 #ifndef SHL_H
 #define SHL_H
 
-#include "fd.h"
-#include "memory.h"
-
-class Manager {
-public:
-    Directory current_dir;
-    Memory mem;
-    int bitmap[blocknum];
-
-    Manager(const char* disk_filename);
-    void init();
-    void buffer_to_directory(Directory& directory);
-    void directory_to_buffer(const Directory& directory);
-    void init_bitmap();
-    void update_bitmap();
-    int get_block();
-    void release_block(int blknum);
-};
+#include "manager.h"
+#include "vi.h"
 
 class Shell{
 public:
