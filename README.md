@@ -26,7 +26,7 @@ The shell comprises the following main components:
 
 To use the file system, follow these steps:
 
-1. Navigate to the project directory: `cd fs`
+1. Navigate to the project directory: `cd filesystem`
 2. Run the executable: `./filesystem`
 
 ### Commands
