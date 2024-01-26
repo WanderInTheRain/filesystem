@@ -27,7 +27,7 @@ int Manager::get_block(){
 }
 
 void Manager::release_block(int blknum){
-    bitmap[blknum] == 0;
+    bitmap[blknum] = 0;
     update_bitmap();
 }
 
@@ -53,6 +53,8 @@ void Manager::buffer_to_directory(Directory& directory) {
     memcpy(&directory.nodenum, buffer_ptr, sizeof(std::size_t));
     buffer_ptr += sizeof(std::size_t);
 
+    directory.fdnodes.clear();
+
     for (std::size_t i = 0; i < directory.nodenum; ++i) {
         FDnode node("", 1, 0, 0);
         memcpy(&node, buffer_ptr, sizeof(FDnode));
@@ -76,9 +78,8 @@ void Manager::directory_to_buffer(const Directory& directory) {
 }
 
 //shell
-Shell::Shell(const char* disk_filename):manager(disk_filename),\
- prefix("/"){
-    prefix += manager.current_dir.dnode.name;
+Shell::Shell(const char* disk_filename):manager(disk_filename){
+    prefix.push_back(manager.current_dir.dnode.name);
 }
 
 std::vector<std::string> Shell::split(std::string input){
@@ -93,26 +94,34 @@ std::vector<std::string> Shell::split(std::string input){
     return tokens;
 }
 
+void Shell::print_prefix(){
+    for (auto s : prefix){
+        std::cout<<"\\"<<s;
+    }
+    std::cout<<">";
+}
+
 void Shell::run(){
     bool run {true};
     std::vector<std::string> tokens;
 
     while (run){
-        std::cout<<prefix<<">";
-        std::getline(std::cin, cmd);
+        print_prefix();
 
+        std::getline(std::cin, cmd);
         tokens = split(cmd);
 
-        if (tokens[0] == "quit"){
+        if (tokens.empty()){}
+        else if (tokens[0] == "quit"){
             run = false;
         }
         else if (tokens[0] == "ls"){
-            for (auto fdnode : manager.current_dir.fdnodes){
-                if (fdnode.type == FL){
-                    std::cout<<"file:"<<fdnode.name<<"  ";
+            for (std::size_t i = 0; i < manager.current_dir.nodenum; ++i){
+                if (manager.current_dir.fdnodes[i].type == FL){
+                    std::cout<<"file:"<<manager.current_dir.fdnodes[i].name<<"  ";
                 }
-                else if (fdnode.type == DIR){
-                    std::cout<<"dir:"<<fdnode.name<<"  ";
+                else if (manager.current_dir.fdnodes[i].type == DIR){
+                    std::cout<<"dir:"<<manager.current_dir.fdnodes[i].name<<"  ";
                 }
             }
             std::cout<<std::endl;
@@ -122,7 +131,7 @@ void Shell::run(){
             strcpy(name, tokens[1].c_str());
             int start_block = manager.get_block();
             int parent_block = manager.current_dir.dnode.start_block;
-            FDnode dirnode(name, FL, start_block, parent_block);
+            FDnode dirnode(name, DIR, start_block, parent_block);
 
             manager.current_dir.fdnodes.push_back(dirnode);
             manager.current_dir.nodenum += 1;
@@ -134,5 +143,63 @@ void Shell::run(){
             manager.directory_to_buffer(dir);
             manager.mem.buffer_write_disk(dir.dnode.start_block);
         }
+        else if (tokens[0] == "cd"){
+            if (tokens[1] == ".."){
+                if (strcmp(manager.current_dir.dnode.name,"root")){
+                    prefix.pop_back();
+                    manager.mem.buffer_read_block(manager.current_dir.dnode.parent_block);
+                    manager.buffer_to_directory(manager.current_dir);
+                }
+            }
+            else{
+                for (std::size_t i = 0; i < manager.current_dir.nodenum; ++i){
+                    if (manager.current_dir.fdnodes[i].name == tokens[1]){
+                        prefix.push_back(tokens[1]);
+                        manager.mem.buffer_read_block(manager.current_dir.fdnodes[i].start_block);
+                        manager.buffer_to_directory(manager.current_dir);
+                    }
+                }
+            }
+        }
+        else if (tokens[0] == "rm"){
+            for (std::size_t i = 0; i < manager.current_dir.nodenum; ++i){
+                if (manager.current_dir.fdnodes[i].name == tokens[1]){
+                    if (manager.current_dir.fdnodes[i].type == FL){
+                        manager.release_block(manager.current_dir.fdnodes[i].start_block);
+                        manager.current_dir.fdnodes.erase(\
+                            manager.current_dir.fdnodes.begin() + i);
+                        manager.current_dir.nodenum -= 1;
+                    }
+                    else if (manager.current_dir.fdnodes[i].type == DIR){
+                        Directory child_dir(FDnode("",1,1,1), 0, std::vector<FDnode>{});
+                        manager.mem.buffer_read_block(manager.current_dir.fdnodes[i].start_block);
+                        manager.buffer_to_directory(child_dir);
+                        rm_directory(child_dir);
+                        manager.current_dir.fdnodes.erase(\
+                            manager.current_dir.fdnodes.begin() + i);
+                        manager.current_dir.nodenum -= 1;
+                    }
+                }
+            }
+        }
     }
+}
+
+void Shell::rm_directory(Directory dir){
+    for (std::size_t i = 0; i < dir.nodenum; ++i){
+        if (dir.fdnodes[i].type == FL){
+            manager.release_block(dir.fdnodes[i].start_block);
+            dir.fdnodes.erase(\
+                dir.fdnodes.begin() + i);
+            i--;
+        }
+        else if (dir.fdnodes[i].type == DIR){
+            Directory child_dir(FDnode("",1,1,1), 0, std::vector<FDnode>{});
+            manager.mem.buffer_read_block(dir.fdnodes[i].start_block);
+            manager.buffer_to_directory(child_dir);
+            rm_directory(child_dir);
+        }
+    }
+    dir.nodenum = 0;
+    manager.release_block(dir.dnode.start_block);
 }
